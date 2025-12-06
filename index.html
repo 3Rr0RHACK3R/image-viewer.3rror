@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin Manager - Visual File Browser</title>
+    <style>
+        :root {
+            --primary-red: #E60023;
+            --primary-dark: #111111;
+            --primary-gray: #767676;
+            --light-gray: #EFEFEF;
+            --light-bg: #F5F5F5;
+            --success-green: #0A8;
+            --warning-orange: #FF9500;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light-bg);
+            color: var(--primary-dark);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-bottom: 1px solid var(--light-gray);
+            padding: 16px 24px;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--primary-red);
+        }
+
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        .logo-tagline {
+            font-size: 12px;
+            color: var(--primary-gray);
+            font-weight: 500;
+        }
+
+        /* Search */
+        .search-container {
+            flex: 1;
+            max-width: 800px;
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 14px 50px 14px 20px;
+            border: 2px solid var(--light-gray);
+            border-radius: 28px;
+            background: white;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary-red);
+            box-shadow: 0 0 0 3px rgba(230, 0, 35, 0.1);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary-red);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .search-btn:hover {
+            background: #ad081b;
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        /* Navigation */
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn-primary {
+            background: var(--primary-red);
+            color: white;
+        }
+
+        .nav-btn-primary:hover {
+            background: #ad081b;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-btn-secondary {
+            background: transparent;
+            color: var(--primary-dark);
+            border: 2px solid var(--light-gray);
+        }
+
+        .nav-btn-secondary:hover {
+            background: var(--light-gray);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1600px;
+            margin: 100px auto 40px;
+            padding: 0 24px;
+        }
+
+        /* Quick Actions */
+        .quick-nav {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-nav-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-gray);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-nav-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid var(--light-gray);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-btn:hover {
+            border-color: var(--primary-red);
+            color: var(--primary-red);
+            transform: translateY(-2px);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .breadcrumb-icon {
+            color: var(--primary-red);
+            font-size: 20px;
+        }
+
+        .breadcrumb-path {
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            color: var(--primary-dark);
+            word-break: break-all;
+        }
+
+        /* Grid */
+        .grid-container {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .masonry-grid {
+            column-count: 6;
+            column-gap: 20px;
+        }
+
+        .grid-item {
+            break-inside: avoid;
+            margin-bottom: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Folder Card */
+        .folder-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .folder-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            color: white;
+            opacity: 0.9;
+        }
+
+        .folder-name {
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        /* Image Card */
+        .image-container {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-preview {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover .image-preview {
+            transform: scale(1.05);
+        }
+
+        .image-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover .image-overlay {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .image-name {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .image-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--light-gray);
+            transform: scale(1.05);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            display: block;
+        }
+
+        .modal-close {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s ease;
+            z-index: 2001;
+        }
+
+        .modal-close:hover {
+            transform: scale(1.1);
+            background: var(--primary-red);
+            color: white;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--primary-dark);
+            color: white;
+            padding: 16px 28px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            z-index: 3000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 24px;
+            color: var(--primary-gray);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 15px;
+            opacity: 0.7;
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(230, 0, 35, 0.2);
+            border-top-color: var(--primary-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--light-gray);
+            font-size: 14px;
+            color: var(--primary-gray);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            font-size: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .masonry-grid { column-count: 5; }
+        }
+
+        @media (max-width: 1200px) {
+            .masonry-grid { column-count: 4; }
+        }
+
+        @media (max-width: 900px) {
+            .masonry-grid { column-count: 3; }
+            .header-container { flex-wrap: wrap; }
+            .search-container { order: 3; width: 100%; margin-top: 16px; }
+        }
+
+        @media (max-width: 600px) {
+            .masonry-grid { column-count: 2; }
+            .main-content { padding: 0 16px; margin-top: 120px; }
+            .quick-nav-buttons { justify-content: center; }
+        }
+
+        @media (max-width: 400px) {
+            .masonry-grid { column-count: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">📌</div>
+                <div>
+                    <div class="logo-text">Pin Manager</div>
+                    <div class="logo-tagline">Visual File Browser</div>
+                </div>
+            </a>
+            
+            <div class="search-container">
+                <input type="text" id="pathInput" class="search-box" 
+                       placeholder="Enter directory path (e.g., C:\Users\Pictures)">
+                <button class="search-btn" onclick="loadDirectory()">→</button>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="nav-btn nav-btn-secondary" onclick="goUp()">
+                    <span>↰</span> Up
+                </button>
+                <button class="nav-btn nav-btn-primary" onclick="loadDirectory()">
+                    <span>📁</span> Load
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Quick Navigation -->
+        <div class="quick-nav">
+            <div class="quick-nav-title">Quick Navigation</div>
+            <div class="quick-nav-buttons">
+                <button class="quick-btn" onclick="setPath('C:\\Users')">Users</button>
+                <button class="quick-btn" onclick="setPath('C:\\')">C Drive</button>
+                <button class="quick-btn" onclick="setPath(getHome())">Home</button>
+                <button class="quick-btn" onclick="setPath(getDesktop())">Desktop</button>
+                <button class="quick-btn" onclick="setPath(getDocuments())">Documents</button>
+                <button class="quick-btn" onclick="setPath(getPictures())">Pictures</button>
+                <button class="quick-btn" onclick="setPath(getDownloads())">Downloads</button>
+            </div>
+        </div>
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb" id="breadcrumb">
+            <div class="breadcrumb-icon">📂</div>
+            <div class="breadcrumb-path" id="breadcrumbPath">Select a directory to begin...</div>
+        </div>
+
+        <!-- Grid -->
+        <div class="grid-container">
+            <div class="masonry-grid" id="grid">
+                <!-- Content will be loaded here -->
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-bar" id="statsBar" style="display: none;">
+                <div class="stat-item">
+                    <span class="stat-icon">📁</span>
+                    <span id="folderCount">0</span> folders
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🖼️</span>
+                    <span id="imageCount">0</span> images
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">📊</span>
+                    <span id="totalCount">0</span> total items
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal" id="imageModal">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="modal-content">
+            <img id="modalImage" class="modal-image" src="" alt="Full size preview">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // State
+        let currentPath = "";
+        let parentPath = null;
+        
+        // Platform detection
+        const isWindows = navigator.platform.includes("Win");
+        
+        // Helper functions
+        function getHome() {
+            if (isWindows) {
+                return `C:\\Users\\${USERNAME || 'Public'}`;
+            }
+            return "/home";
+        }
+        
+        function getDesktop() {
+            if (isWindows) {
+                return `C:\\Users\\${USERNAME || 'Public'}\\Desktop`;
+            }
+            return "/home/Desktop";
+        }
+        
+        function getDocuments() {
+            if (isWindows) {
+                return `C:\\Users\\${USERNAME || 'Public'}\\Documents`;
+            }
+            return "/home/Documents";
+        }
+        
+        function getDownloads() {
+            if (isWindows) {
+                return `C:\\Users\\${USERNAME || 'Public'}\\Downloads`;
+            }
+            return "/home/Downloads";
+        }
+        
+        function getPictures() {
+            if (isWindows) {
+                return `C:\\Users\\${USERNAME || 'Public'}\\Pictures`;
+            }
+            return "/home/Pictures";
+        }
+        
+        function setPath(path) {
+            document.getElementById("pathInput").value = path;
+            loadDirectory();
+        }
+        
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, duration);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // Main directory loading function
+        async function loadDirectory(path = null) {
+            const input = document.getElementById("pathInput");
+            const targetPath = path || input.value.trim();
+            
+            if (!targetPath) {
+                showToast("Please enter a directory path");
+                return;
+            }
+            
+            const grid = document.getElementById("grid");
+            const statsBar = document.getElementById("statsBar");
+            
+            // Show loading state
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="loading-spinner"></div>
+                    <div class="empty-state-title" style="margin-top: 20px;">Loading directory...</div>
+                </div>
+            `;
+            
+            statsBar.style.display = "none";
+            
+            try {
+                // Fetch directory listing
+                const response = await fetch(`/api/list?path=${encodeURIComponent(targetPath)}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error("Directory not found");
+                    }
+                    throw new Error(`Failed to load directory (Status: ${response.status})`);
+                }
+                
+                const data = await response.json();
+                
+                // Update state
+                currentPath = data.current_path;
+                parentPath = data.parent_path;
+                input.value = currentPath;
+                
+                // Update breadcrumb
+                document.getElementById("breadcrumbPath").textContent = currentPath;
+                
+                // Clear grid
+                grid.innerHTML = "";
+                
+                // Check if directory is empty
+                if (data.entries.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📂</div>
+                            <div class="empty-state-title">Empty Directory</div>
+                            <div class="empty-state-text">This folder doesn't contain any images or folders</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Count statistics
+                const folders = data.entries.filter(e => e.is_dir);
+                const images = data.entries.filter(e => e.is_image);
+                
+                // Create grid items
+                data.entries.forEach(entry => {
+                    const item = document.createElement("div");
+                    item.className = "grid-item";
+                    
+                    if (entry.is_dir) {
+                        // Folder card
+                        item.innerHTML = `
+                            <div class="card folder-card" onclick="loadDirectory('${entry.path.replace(/'/g, "\\'")}')">
+                                <div class="folder-icon">📁</div>
+                                <div class="folder-name">${escapeHtml(entry.name)}</div>
+                            </div>
+                        `;
+                    } else if (entry.is_image) {
+                        // Image card
+                        const safePath = entry.path.replace(/'/g, "\\'");
+                        const safeName = escapeHtml(entry.name);
+                        
+                        item.innerHTML = `
+                            <div class="card">
+                                <div class="image-container">
+                                    <img src="/image/${encodeURIComponent(entry.path)}" 
+                                         alt="${safeName}" 
+                                         class="image-preview" 
+                                         loading="lazy"
+                                         onclick="viewImage('${safePath}')">
+                                    
+                                    <div class="image-overlay">
+                                        <div class="image-name" title="${safeName}">${safeName}</div>
+                                        <div class="image-actions">
+                                            <button class="action-btn" onclick="event.stopPropagation(); renameFile('${safePath}', '${safeName}')">
+                                                ✏️ Rename
+                                            </button>
+                                            <button class="action-btn" onclick="event.stopPropagation(); deleteFile('${safePath}')">
+                                                🗑️ Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    grid.appendChild(item);
+                });
+                
+                // Update stats
+                document.getElementById("folderCount").textContent = folders.length;
+                document.getElementById("imageCount").textContent = images.length;
+                document.getElementById("totalCount").textContent = data.entries.length;
+                statsBar.style.display = "flex";
+                
+                showToast(`Loaded ${images.length} images and ${folders.length} folders`);
+                
+            } catch (error) {
+                console.error("Error loading directory:", error);
+                
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Error Loading Directory</div>
+                        <div class="empty-state-text">${escapeHtml(error.message)}</div>
+                    </div>
+                `;
+                
+                showToast(`Error: ${error.message}`, 5000);
+            }
+        }
+        
+        function goUp() {
+            if (parentPath) {
+                loadDirectory(parentPath);
+            } else {
+                showToast("Already at the root directory");
+            }
+        }
+        
+        function viewImage(imagePath) {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            
+            modalImg.src = `/image/${encodeURIComponent(imagePath)}`;
+            modal.classList.add("active");
+            document.body.style.overflow = "hidden";
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImage");
+            
+            modal.classList.remove("active");
+            modalImg.src = "";
+            document.body.style.overflow = "";
+        }
+        
+        async function deleteFile(filePath) {
+            const fileName = filePath.split(/[\\/]/).pop();
+            
+            if (!confirm(`Delete "${fileName}"?\n\nA backup will be created in the .safety_net folder.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/delete?path=${encodeURIComponent(filePath)}`, {
+                    method: "POST"
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Delete failed (Status: ${response.status})`);
+                }
+                
+                showToast(`Deleted "${fileName}" (backup created)`);
+                
+                // Refresh current directory
+                setTimeout(() => loadDirectory(currentPath), 500);
+                
+            } catch (error) {
+                console.error("Delete error:", error);
+                showToast(`Error: ${error.message}`, 5000);
+            }
+        }
+        
+        async function renameFile(oldPath, oldName) {
+            const newName = prompt(`Rename "${oldName}" to:`, oldName);
+            
+            if (!newName || newName.trim() === "" || newName === oldName) {
+                return;
+            }
+            
+            try {
+                const response = await fetch("/api/rename", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        old_path: oldPath,
+                        new_name: newName.trim()
+                    })
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 409) {
+                        throw new Error("A file with that name already exists");
+                    }
+                    throw new Error(`Rename failed (Status: ${response.status})`);
+                }
+                
+                showToast(`Renamed to "${newName}" (backup created)`);
+                
+                // Refresh current directory
+                setTimeout(() => loadDirectory(currentPath), 500);
+                
+            } catch (error) {
+                console.error("Rename error:", error);
+                showToast(`Error: ${error.message}`, 5000);
+            }
+        }
+        
+        // Event Listeners
+        document.getElementById("pathInput").addEventListener("keypress", (event) => {
+            if (event.key === "Enter") {
+                loadDirectory();
+            }
+        });
+        
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+        
+        // Initialize with home directory
+        window.addEventListener("DOMContentLoaded", () => {
+            setPath(getHome());
+        });
+    </script>
+</body>
+</html>
